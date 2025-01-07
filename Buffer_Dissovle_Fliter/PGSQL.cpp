@@ -1,13 +1,13 @@
 #include "PGSQL.h"
 #include <iostream>
 
-// ¹¹Ôìº¯Êı
+// æ„é€ å‡½æ•°
 PGSQL::PGSQL(const std::string& connString) : msConnString(connString) {}
 
-// ±£´æÊı¾İµ½Êı¾İ¿â
+// ä¿å­˜æ•°æ®åˆ°æ•°æ®åº“
 void PGSQL::saveToDatabase(GDALDataset* poDS) {
 	std::string connectionString = getConnectionString();
-	// ´ò¿ª GDAL Êı¾İ¼¯
+	// æ‰“å¼€ GDAL æ•°æ®é›†
 	if (!poDS) {
 		throw std::runtime_error("Failed to open input dataset");
 	}
@@ -17,16 +17,16 @@ void PGSQL::saveToDatabase(GDALDataset* poDS) {
 		throw std::runtime_error("PostgreSQL driver not found");
 	}
 
-	// É¾³ı±í£¨Èç¹ûÒÑ´æÔÚ£©
+	// åˆ é™¤è¡¨ï¼ˆå¦‚æœå·²å­˜åœ¨ï¼‰
 	dropTableIfExists("buffer");
 
-	// Ğ´ÈëÊı¾İµ½Êı¾İ¿â
+	// å†™å…¥æ•°æ®åˆ°æ•°æ®åº“
 	GDALDataset* outputDataset = pgDriver->CreateCopy(connectionString.c_str(), poDS, FALSE, nullptr, nullptr, nullptr);
 	if (!outputDataset) {
 		GDALClose(poDS);
 		throw std::runtime_error("Failed to save dataset to database");
 	}
-	// ´´½¨¿Õ¼äË÷Òı
+	// åˆ›å»ºç©ºé—´ç´¢å¼•
 	createSpatialIndex();
 
 	GDALClose(outputDataset);
@@ -34,7 +34,7 @@ void PGSQL::saveToDatabase(GDALDataset* poDS) {
 	//std::cout << "Data saved to database table: " << tableName << std::endl;
 }
 
-// ¹ıÂË½á¹û£¬Êä³ö×îÖÕ·ÖÀàÎÄ¼ş
+// è¿‡æ»¤ç»“æœï¼Œè¾“å‡ºæœ€ç»ˆåˆ†ç±»æ–‡ä»¶
 void PGSQL::fliter(const std::string& outputFilePath) {
 	std::string connectionString = getConnectionString();
 	std::string tempTableName = "temp";
@@ -43,34 +43,34 @@ void PGSQL::fliter(const std::string& outputFilePath) {
 	dissolve(unionFilePath);
 
 	GDALAllRegister();
-	// ´ò¿ª PostgreSQL Êı¾İ¼¯
+	// æ‰“å¼€ PostgreSQL æ•°æ®é›†
 	std::string connString = connectionString;
 	GDALDataset* poDS = static_cast<GDALDataset*>(GDALOpenEx(connString.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
 	if (!poDS) {
 		throw std::runtime_error("Failed to open PostgreSQL dataset");
 	}
 
-	// ´ò¿ª Shapefile Çı¶¯
+	// æ‰“å¼€ Shapefile é©±åŠ¨
 	GDALDriver* shpDriver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 	if (!shpDriver) {
 		GDALClose(poDS);
 		throw std::runtime_error("ESRI Shapefile driver not found");
 	}
 
-	// ¹¹½¨ SQL ²éÑ¯
+	// æ„å»º SQL æŸ¥è¯¢
 	std::string sql = "SELECT * FROM " + tempTableName;
 
-	// ÉèÖÃµ¼³öÑ¡Ïî
+	// è®¾ç½®å¯¼å‡ºé€‰é¡¹
 	char** papszOptions = nullptr;
 
-	// µ¼³öÊı¾İ
+	// å¯¼å‡ºæ•°æ®
 	GDALDataset* midDataset = shpDriver->Create(unionFilePath.c_str(), 0, 0, 0, GDT_Unknown, papszOptions);
 	if (!midDataset) {
 		GDALClose(poDS);
 		throw std::runtime_error("Failed to create output Shapefile");
 	}
 
-	// ´´½¨Í¼²ã
+	// åˆ›å»ºå›¾å±‚
 	OGRLayer* inputLayer = poDS->ExecuteSQL(sql.c_str(), nullptr, nullptr);
 	if (!inputLayer) {
 		GDALClose(midDataset);
@@ -85,7 +85,7 @@ void PGSQL::fliter(const std::string& outputFilePath) {
 		throw std::runtime_error("Failed to copy data to Shapefile");
 	}
 	GDALClose(poDS);
-	// ¹ıÂË
+	// è¿‡æ»¤
 	GDALDriver* driver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 
 	GDALDataset* outputDataset = driver->Create(outputFilePath.c_str(), 0, 0, 0, GDT_Unknown, nullptr);
@@ -96,7 +96,7 @@ void PGSQL::fliter(const std::string& outputFilePath) {
 		GDALClose(outputDataset);
 		GDALClose(midDataset);
 	}
-	// ¶ÁÈ¡ÊäÈëµÄºÏ²¢Ãæ
+	// è¯»å–è¾“å…¥çš„åˆå¹¶é¢
 	midLayer->ResetReading();
 
 	OGRFeature* feature = nullptr;
@@ -106,12 +106,12 @@ void PGSQL::fliter(const std::string& outputFilePath) {
 
 	//double sumArea = 0.0f;
 	//int count = 0;
-	// ´¦Àí²ğ·Ö
+	// å¤„ç†æ‹†åˆ†
 	if (mergedGeometry->getGeometryType() == wkbMultiPolygon) {
 		OGRMultiPolygon* multiPolygon = mergedGeometry->toMultiPolygon();
 		for (int i = 0; i < multiPolygon->getNumGeometries(); i++) {
 			OGRGeometry* geom = multiPolygon->getGeometryRef(i);
-			// ¹ıÂËÃæ»ıĞ¡ÓÚminAreaµÄÃæ
+			// è¿‡æ»¤é¢ç§¯å°äºminAreaçš„é¢
 			auto poly = dynamic_cast<OGRPolygon*>(geom);
 
 			//sumArea += poly->get_Area();
@@ -127,28 +127,27 @@ void PGSQL::fliter(const std::string& outputFilePath) {
 		}
 	}
 	else {
-		// Èç¹ûÊÇµ¥Ò»Ãæ£¬Ö±½Ó±£´æ
+		// å¦‚æœæ˜¯å•ä¸€é¢ï¼Œç›´æ¥ä¿å­˜
 		OGRFeature* newFeature = OGRFeature::CreateFeature(outputLayer->GetLayerDefn());
 		newFeature->SetGeometry(mergedGeometry->ConvexHull());
 		outputLayer->CreateFeature(newFeature);
 		OGRFeature::DestroyFeature(newFeature);
 	}
 	//std::cout << "Average area of merged geometry: " << sumArea / count << std::endl;
-	// ÇåÀí×ÊÔ´
+	// æ¸…ç†èµ„æº
 	delete mergedGeometry;
 
-	// ÊÍ·Å×ÊÔ´
+	// é‡Šæ”¾èµ„æº
 	GDALClose(midDataset);
 	GDALClose(outputDataset);
 }
 
-// »ñÈ¡Êı¾İ¿âÁ¬½Ó
+// è·å–æ•°æ®åº“è¿æ¥
 std::string PGSQL::getConnectionString() const {
 	return msConnString;
-		//"PG:dbname=db_test user=postgres password=190475 hostaddr=172.27.61.34 port=5432";
 }
 
-// É¾³ı±í(¸²¸Ç±íµÄ½Ó¿ÚÓĞÎÊÌâ£¬Ö»ÄÜÏÈÉ¾³ıÔÙ´´½¨£©
+// åˆ é™¤è¡¨(è¦†ç›–è¡¨çš„æ¥å£æœ‰é—®é¢˜ï¼Œåªèƒ½å…ˆåˆ é™¤å†åˆ›å»ºï¼‰
 void PGSQL::dropTableIfExists(const std::string& tableName) {
 
 	pqxx::connection conn("dbname=db_test user=postgres password=190475");
@@ -160,7 +159,7 @@ void PGSQL::dropTableIfExists(const std::string& tableName) {
 	//std::cout << "Dropped table if it existed: " << tableName << std::endl;
 }
 
-// ´´½¨¿Õ¼äË÷Òı
+// åˆ›å»ºç©ºé—´ç´¢å¼•
 void PGSQL::createSpatialIndex() {
 	std::string tableName = "buffer";
 
@@ -173,14 +172,14 @@ void PGSQL::createSpatialIndex() {
 	//std::cout << "Spatial index created for table: " << tableName << std::endl;
 }
 
-// ºÏ²¢Ïà½»ÒªËØ
+// åˆå¹¶ç›¸äº¤è¦ç´ 
 void PGSQL::dissolve(const std::string& outputFilePath) {
 	std::string connectionString = getConnectionString();
 	std::string tableName = "buffer";
 	std::string tempTableName = "temp";
 	
 	try {
-		// Á¬½Óµ½ PostgreSQL Êı¾İ¿â
+		// è¿æ¥åˆ° PostgreSQL æ•°æ®åº“
 		PGconn* conn = PQconnectdb(connectionString.substr(3, connectionString.length() - 3).c_str());
 		if (PQstatus(conn) != CONNECTION_OK) {
 			throw std::runtime_error("Failed to connect to the database: " + std::string(PQerrorMessage(conn)));
@@ -188,7 +187,7 @@ void PGSQL::dissolve(const std::string& outputFilePath) {
 
 		dropTableIfExists(tempTableName);
 
-		// ´´½¨ÁÙÊ±±í²¢ºÏ²¢Ïà½»ÒªËØ
+		// åˆ›å»ºä¸´æ—¶è¡¨å¹¶åˆå¹¶ç›¸äº¤è¦ç´ 
 		std::string sqlMerge = R"(
 			CREATE TABLE )" + tempTableName + R"( AS
 			SELECT ST_Union(wkb_geometry) AS geom
@@ -204,7 +203,7 @@ void PGSQL::dissolve(const std::string& outputFilePath) {
 		PQclear(res);
 		PQfinish(conn);
 
-		// ´ò¿ª PostgreSQL Êı¾İ¼¯
+		// æ‰“å¼€ PostgreSQL æ•°æ®é›†
 		GDALAllRegister();
 		std::string connString = connectionString;
 		GDALDataset* poDS = static_cast<GDALDataset*>(GDALOpenEx(connString.c_str(), GDAL_OF_VECTOR, nullptr, nullptr, nullptr));
@@ -212,17 +211,17 @@ void PGSQL::dissolve(const std::string& outputFilePath) {
 			throw std::runtime_error("Failed to open PostgreSQL dataset");
 		}
 
-		// ´ò¿ª Shapefile Çı¶¯
+		// æ‰“å¼€ Shapefile é©±åŠ¨
 		GDALDriver* shpDriver = GetGDALDriverManager()->GetDriverByName("ESRI Shapefile");
 		if (!shpDriver) {
 			GDALClose(poDS);
 			throw std::runtime_error("ESRI Shapefile driver not found");
 		}
 
-		// ¹¹½¨ SQL ²éÑ¯
+		// æ„å»º SQL æŸ¥è¯¢
 		std::string sqlQuery = "SELECT * FROM " + tempTableName;
 
-		// µ¼³öµ½ Shapefile
+		// å¯¼å‡ºåˆ° Shapefile
 		char** papszOptions = nullptr;
 		GDALDataset* outputDataset = shpDriver->Create(outputFilePath.c_str(), 0, 0, 0, GDT_Unknown, papszOptions);
 		if (!outputDataset) {
@@ -230,7 +229,7 @@ void PGSQL::dissolve(const std::string& outputFilePath) {
 			throw std::runtime_error("Failed to create output Shapefile");
 		}
 
-		// Ö´ĞĞ²éÑ¯²¢¸´ÖÆÍ¼²ã
+		// æ‰§è¡ŒæŸ¥è¯¢å¹¶å¤åˆ¶å›¾å±‚
 		OGRLayer* inputLayer = poDS->ExecuteSQL(sqlQuery.c_str(), nullptr, nullptr);
 		if (!inputLayer) {
 			GDALClose(outputDataset);
@@ -245,7 +244,7 @@ void PGSQL::dissolve(const std::string& outputFilePath) {
 			throw std::runtime_error("Failed to copy data to Shapefile");
 		}
 
-		// ÊÍ·Å×ÊÔ´
+		// é‡Šæ”¾èµ„æº
 		poDS->ReleaseResultSet(inputLayer);
 		GDALClose(outputDataset);
 		GDALClose(poDS);
